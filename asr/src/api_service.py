@@ -31,3 +31,19 @@ async def stt(request: Request):
         predictions.append(transcription)
 
     return {"predictions": predictions}
+
+
+from fastapi import File, UploadFile
+
+@app.post("/stt_file")
+async def stt_file(request: Request, file: UploadFile = File(...)):
+    """
+    Performs ASR given the filepath of an audio file
+    Returns transcription of the audio
+    """
+
+    # get base64 encoded string of audio, convert back into bytes
+    audio_bytes = await file.read()
+
+    transcription = asr_manager.transcribe(audio_bytes)
+    return {"prediction": transcription}
