@@ -1,6 +1,7 @@
 import ffmpeg
 import numpy as np
-from transformers import WhisperProcessor, WhisperForConditionalGeneration
+import torch
+from transformers import GenerationConfig, WhisperProcessor, WhisperForConditionalGeneration
 
 def load_audio(file_bytes: bytes, sr: int = 16_000) -> np.ndarray:
     """
@@ -29,14 +30,22 @@ def load_audio(file_bytes: bytes, sr: int = 16_000) -> np.ndarray:
 
     return np.frombuffer(out, np.int16).flatten().astype(np.float32) / 32768.0
 
+MODEL_NAME = "openai/whisper-small.en"
+
 class ASRManager:
     def __init__(self):
-        self.processor = WhisperProcessor.from_pretrained("openai/whisper-small.en")
-        self.model = WhisperForConditionalGeneration.from_pretrained("openai/whisper-small.en")
+        self.processor = WhisperProcessor.from_pretrained(MODEL_NAME)
+        self.model = WhisperForConditionalGeneration.from_pretrained(MODEL_NAME)
+        
+        # Suppress tokens for numeric values, to get the equivalent word spelled out (e.g. "123" -> "one two three")
+        tokenizer=self.processor.tokenizer
+        number_tokens = [i for i in range(tokenizer.vocab_size) if all(c in "0123456789" for c in tokenizer.decode([i]).removeprefix(" "))]
+        self.gen_config = GenerationConfig.from_pretrained(MODEL_NAME)
+        self.gen_config.suppress_tokens += number_tokens
 
     def transcribe(self, audio_bytes: bytes) -> str:
         audio = load_audio(audio_bytes)
         input_features = self.processor(audio=audio, sampling_rate=16000, return_tensors="pt").input_features
-        generated_ids = self.model.generate(input_features)
+        generated_ids = self.model.generate(input_features, generation_config=self.gen_config)
         transcription = self.processor.batch_decode(generated_ids, skip_special_tokens=True)
         return transcription[0]
