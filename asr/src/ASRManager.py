@@ -34,8 +34,11 @@ MODEL_NAME = "openai/whisper-small.en"
 
 class ASRManager:
     def __init__(self):
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        print(f"[ASR] Device: {self.device}")
+
         self.processor = WhisperProcessor.from_pretrained(MODEL_NAME)
-        self.model = WhisperForConditionalGeneration.from_pretrained(MODEL_NAME)
+        self.model = WhisperForConditionalGeneration.from_pretrained(MODEL_NAME).to(self.device)
         
         # Suppress tokens for numeric values, to get the equivalent word spelled out (e.g. "123" -> "one two three")
         tokenizer=self.processor.tokenizer
@@ -45,7 +48,7 @@ class ASRManager:
 
     def transcribe(self, audio_bytes: bytes) -> str:
         audio = load_audio(audio_bytes)
-        input_features = self.processor(audio=audio, sampling_rate=16000, return_tensors="pt").input_features
+        input_features = self.processor(audio=audio, sampling_rate=16000, return_tensors="pt").input_features.to(self.device)
         generated_ids = self.model.generate(input_features, generation_config=self.gen_config)
         transcription = self.processor.batch_decode(generated_ids, skip_special_tokens=True)
         return transcription[0]
