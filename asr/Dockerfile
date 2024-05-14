@@ -3,6 +3,8 @@
 # and for details see https://cloud.google.com/deep-learning-vm/docs/images#supported-frameworks
 FROM us-docker.pkg.dev/deeplearning-platform-release/gcr.io/pytorch-gpu.2-2.py310
 
+RUN apt install -y -q ffmpeg
+
 # Keeps Python from generating .pyc files in the container
 ENV PYTHONDONTWRITEBYTECODE 1
 
