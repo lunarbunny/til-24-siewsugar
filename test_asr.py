@@ -8,6 +8,7 @@ from pathlib import Path
 from scoring.asr_eval import asr_eval
 from dotenv import load_dotenv
 import os
+import sys
 
 load_dotenv()
 
@@ -16,15 +17,32 @@ TEAM_TRACK = os.getenv("TEAM_TRACK")
 
 
 def main():
-    input_dir = Path(f"/home/jupyter/{TEAM_TRACK}")
-    # input_dir = Path(f"../../data/{TEAM_TRACK}/train")
-    # results_dir = Path(f"/home/jupyter/{TEAM_NAME}")
-    results_dir = Path("results")
+    line_limit = sys.maxsize
+    if len(sys.argv) > 1:
+        # First argument is the line limit
+        arg1 = sys.argv[1]
+        if arg1.isnumeric():
+            line_limit = int(arg1)
+            print(f"Limiting to {line_limit} test cases.")
+
+    on_gcp = None not in [TEAM_NAME, TEAM_TRACK]
+
+    if on_gcp:
+        # For running on GCP
+        input_dir = Path(f"/home/jupyter/{TEAM_TRACK}")
+        results_dir = Path(f"/home/jupyter/{TEAM_NAME}")
+    else:
+        # For running locally
+        input_dir = Path("advanced")
+        results_dir = Path("results")
+    
     results_dir.mkdir(parents=True, exist_ok=True)
     instances = []
 
     with open(input_dir / "asr.jsonl", "r") as f:
-        for line in f:
+        for idx, line in enumerate(f):
+            if idx >= line_limit:
+                break
             if line.strip() == "":
                 continue
             instance = json.loads(line.strip())

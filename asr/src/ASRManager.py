@@ -31,6 +31,7 @@ def load_audio(file_bytes: bytes, sr: int = 16_000) -> np.ndarray:
     return np.frombuffer(out, np.int16).flatten().astype(np.float32) / 32768.0
 
 MODEL_NAME = "openai/whisper-small.en"
+MODEL_CHKPT_NAME = "./models/whisper-small.en-til-24/"
 
 class ASRManager:
     def __init__(self):
@@ -38,7 +39,7 @@ class ASRManager:
         print(f"[ASR] Device: {self.device}")
 
         self.processor = WhisperProcessor.from_pretrained(MODEL_NAME)
-        self.model = WhisperForConditionalGeneration.from_pretrained(MODEL_NAME).to(self.device)
+        self.model = WhisperForConditionalGeneration.from_pretrained(MODEL_CHKPT_NAME).to(self.device)
         
         # Suppress tokens for numeric values, to get the equivalent word spelled out (e.g. "123" -> "one two three")
         tokenizer=self.processor.tokenizer
