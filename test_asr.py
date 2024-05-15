@@ -54,12 +54,12 @@ def main():
 
     results = run_batched(instances)
     df = pd.DataFrame(results)
-    df.to_csv(results_dir / "asr_results.csv", index=False)
     # calculate eval
     eval_result = asr_eval(
         [result["transcript"] for result in results],
         [result["prediction"] for result in results],
     )
+    df.to_csv(results_dir / f"asr_whisper-small.en_cXXX_{str(eval_result)[:8]}.csv", index=False)
     print(f"1-WER: {eval_result}")
 
 

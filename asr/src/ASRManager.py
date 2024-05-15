@@ -44,7 +44,7 @@ class ASRManager:
         # Suppress tokens for numeric values, to get the equivalent word spelled out (e.g. "123" -> "one two three")
         tokenizer=self.processor.tokenizer
         number_tokens = [i for i in range(tokenizer.vocab_size) if all(c in "0123456789" for c in tokenizer.decode([i]).removeprefix(" "))]
-        self.gen_config = GenerationConfig.from_pretrained(MODEL_NAME)
+        self.gen_config = GenerationConfig.from_pretrained(MODEL_CHKPT_NAME)
         self.gen_config.suppress_tokens += number_tokens
 
     def transcribe(self, audio_bytes: bytes) -> str:

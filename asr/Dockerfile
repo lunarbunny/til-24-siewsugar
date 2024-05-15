@@ -24,7 +24,7 @@ RUN pip install -r requirements.txt
 
 # copy the rest of the files into the container
 COPY src .
-COPY ./models/whisper-small.en-til-24/checkpoint-100/ ./models/whisper-small.en-til-24/
+COPY ./models/whisper-small.en-til-24/*.json ./models/whisper-small.en-til-24/*.bin ./models/whisper-small.en-til-24/
 
 # start model service
 CMD uvicorn api_service:app --port 5001 --host 0.0.0.0
