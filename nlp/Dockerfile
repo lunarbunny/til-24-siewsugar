@@ -22,6 +22,7 @@ RUN pip install -r requirements.txt
 
 # copy the rest of the files into the container
 COPY src .
+COPY ./models/bert-large-uncased-whole-word-masking-finetuned-squad/ ./models/bert-large-uncased-whole-word-masking-finetuned-squad/
 
 # start model service
 CMD uvicorn api_service:app --port 5002 --host 0.0.0.0
