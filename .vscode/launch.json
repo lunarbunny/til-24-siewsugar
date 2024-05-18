@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python Debugger: FastAPI",
+            "name": "ASR FastAPI",
             "type": "debugpy",
             "request": "launch",
             "cwd": "${workspaceFolder}/asr/src",
@@ -16,6 +16,29 @@
                 "--reload"
             ],
             "jinja": true
-        }
+        },
+        {
+            "name": "VLM FastAPI",
+            "type": "debugpy",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/vlm/src",
+            "module": "uvicorn",
+            "args": [
+                "api_service:app",
+                "--port=5004",
+                "--reload"
+            ],
+            "jinja": true
+        },
+        {
+            "name": "Test VLM",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "test_vlm.py",
+            "args": [
+                "30"
+            ],
+            "console": "integratedTerminal"
+        },
     ]
 }

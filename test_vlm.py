@@ -1,5 +1,7 @@
 import base64
 import json
+import sys
+import time
 from typing import Dict, List
 import pandas as pd
 import requests
@@ -16,18 +18,34 @@ TEAM_TRACK = os.getenv("TEAM_TRACK")
 
 
 def main():
-    # input_dir = Path(f"/home/jupyter/{TEAM_TRACK}")
-    input_dir = Path(f"../../data/{TEAM_TRACK}/train")
-    # results_dir = Path(f"/home/jupyter/{TEAM_NAME}")
-    results_dir = Path("results")
+    line_limit = sys.maxsize
+    if len(sys.argv) > 1:
+        # First argument is the line limit
+        arg1 = sys.argv[1]
+        if arg1.isnumeric():
+            line_limit = int(arg1)
+            print(f"Limiting to {line_limit} test cases.")
 
+    on_gcp = None not in [TEAM_NAME, TEAM_TRACK]
+
+    if on_gcp:
+        # For running on GCP
+        input_dir = Path(f"/home/jupyter/{TEAM_TRACK}")
+        results_dir = Path(f"/home/jupyter/{TEAM_NAME}")
+    else:
+        # For running locally
+        input_dir = Path("advanced")
+        results_dir = Path("results")
+    
     results_dir.mkdir(parents=True, exist_ok=True)
     instances = []
     truths = []
     counter = 0
 
     with open(input_dir / "vlm.jsonl", "r") as f:
-        for line in f:
+        for idx, line in enumerate(tqdm(f, desc="Reading vlm.jsonl")):
+            if idx >= line_limit:
+                break
             if line.strip() == "":
                 continue
             instance = json.loads(line.strip())
@@ -51,8 +69,29 @@ def main():
                     counter += 1
 
     assert len(truths) == len(instances)
+
+    # Wait for the server to start
+    counter = 0
+    retries = 100
+    while counter < retries:
+        counter += 1
+        print(f"> Checking server health... ({counter}/{retries} attempts)", end="\r")
+        try:
+            res = requests.get("http://localhost:5004/health")
+            if res.ok:
+                print("\n✓ Server is ready!")
+                break
+        except requests.exceptions.ConnectionError:
+            pass
+        time.sleep(2)
+
     results = run_batched(instances)
-    df = pd.DataFrame(results)
+    df = pd.DataFrame(results).merge(pd.DataFrame(truths), on="key")
+    df.rename(columns={"bbox_x": "predict", "bbox_y": "truth"}, inplace=True)
+    df["iou"] = df.apply(
+        lambda row: vlm_eval([row["predict"]], [row["truth"]]), axis=1
+    )
+    df = df[["key", "predict", "truth", "iou", "caption"]]
     assert len(truths) == len(results)
     df.to_csv(results_dir / "vlm_results.csv", index=False)
     # calculate eval
