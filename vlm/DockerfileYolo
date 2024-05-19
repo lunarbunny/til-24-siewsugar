@@ -21,6 +21,7 @@ WORKDIR /workspace
 # install other requirements
 COPY requirements_yolo.txt .
 RUN pip install -r requirements_yolo.txt
+RUN pip install --upgrade ultralytics
 
 # copy the rest of the files into the container
 COPY src .

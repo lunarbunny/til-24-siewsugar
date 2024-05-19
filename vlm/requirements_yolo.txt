@@ -13,3 +13,4 @@ transformers==4.37.0
 accelerate
 uvicorn[standard]
 ultralytics
+dill

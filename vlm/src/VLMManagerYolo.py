@@ -10,7 +10,7 @@ class VLMManager:
     def __init__(self):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"[VLM] Device: {self.device}")
-        self.yolo_model = YOLO("models/yolov8m-finetuned-100/weights/best.pt")
+        self.yolo_model = YOLO("./models/yolov8m-finetuned-100/weights/best.pt")
         self.clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(self.device)
         self.clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
@@ -27,7 +27,7 @@ class VLMManager:
             # Crop bounding boxes from orginal image
             left, top, w, h = int(x-(w/2)), int(y-(h/2)), int(w), int(h)
             cropped = yolo_result.orig_img[top:top+h, left:left+w, ::-1] # BGR to RGB
-            obj_class = yolo_model.names[cls.item()]
+            obj_class = self.yolo_model.names[cls.item()]
             #print(f"[{left}, {top}, {int(w)}, {int(h)}] {cls.int().item()} {obj_class}")
             yolo_annotations.append({"image": cropped, "bbox": [left, top, w, h], "class": f"{obj_class}"})
 
