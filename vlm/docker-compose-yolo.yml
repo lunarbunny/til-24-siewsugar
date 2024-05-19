@@ -1,0 +1,16 @@
+services:
+  asr:
+    image: siewsugar-vlm:latest
+    container_name: vlm
+    build:
+      context: .
+      dockerfile: DockerfileYolo
+    ports:
+      - 5004:5004
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

@@ -62,6 +62,7 @@ def main():
                     truths.append(
                         {
                             "key": counter,
+                            "image": instance["image"],
                             "caption": annotation["caption"],
                             "bbox": annotation["bbox"],
                         }
@@ -91,7 +92,7 @@ def main():
     df["iou"] = df.apply(
         lambda row: vlm_eval([row["predict"]], [row["truth"]]), axis=1
     )
-    df = df[["key", "predict", "truth", "iou", "caption"]]
+    df = df[["key", "image", "predict", "truth", "iou", "caption"]]
     assert len(truths) == len(results)
     df.to_csv(results_dir / "vlm_results.csv", index=False)
     # calculate eval
