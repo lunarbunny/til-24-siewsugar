@@ -10,7 +10,7 @@ class VLMManager:
     def __init__(self):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"[VLM] Device: {self.device}")
-        self.yolo_model = YOLO("./models/yolov8m-finetuned-100/weights/best.pt")
+        self.yolo_model = YOLO("./models/yolov8/weights/best.pt")
         self.clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(self.device)
         self.clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
@@ -41,3 +41,14 @@ class VLMManager:
         best_match_idx = logits_per_image.argmax(dim=0).item()
 
         return yolo_annotations[best_match_idx]["bbox"]
+
+## Check code
+# import base64
+# vlm_manager = VLMManager()
+# with open("example.jpg", "rb") as file:
+#     image = file.read()
+# image_bytes = base64.b64encode(image).decode("ascii")
+# image_byte = base64.b64decode(image_bytes)
+
+# result = vlm_manager.identify(image_byte, "yellow helicopter")
+# print(result)

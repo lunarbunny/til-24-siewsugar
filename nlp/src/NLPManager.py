@@ -77,7 +77,7 @@ def word_to_number(word: str) -> int:
         print(f"Word '{word}' is not a recognized number")
 
 ## Check code
-nlp_manager = NLPManager()
-transcription = "Control Tower here. Deploy EMP, heading three six zero, target is grey and yellow cargo aircraft. Engage and neutralize. Over."
-result = nlp_manager.qa(transcription)
-print(result)
+# nlp_manager = NLPManager()
+# transcription = "Control Tower here. Deploy EMP, heading three six zero, target is grey and yellow cargo aircraft. Engage and neutralize. Over."
+# result = nlp_manager.qa(transcription)
+# print(result)
