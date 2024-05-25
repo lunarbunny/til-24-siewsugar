@@ -31,6 +31,19 @@
             "jinja": true
         },
         {
+            "name": "VLM FastAPI YOLO",
+            "type": "debugpy",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/vlm/src",
+            "module": "uvicorn",
+            "args": [
+                "api_service_yolo:app",
+                "--port=5004",
+                "--reload"
+            ],
+            "jinja": true
+        },
+        {
             "name": "Test VLM",
             "type": "debugpy",
             "request": "launch",

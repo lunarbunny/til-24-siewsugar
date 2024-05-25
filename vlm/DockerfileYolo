@@ -25,7 +25,7 @@ RUN pip install --upgrade ultralytics
 
 # copy the rest of the files into the container
 COPY src .
-COPY models/yolov8m-v1-300/weights/best.pt ./models/yolov8/weights/
+COPY models/yolov8m-v2-300/weights/best.pt ./models/yolov8/weights/
 
 # start model service
 CMD uvicorn api_service_yolo:app --port 5004 --host 0.0.0.0

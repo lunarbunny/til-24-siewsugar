@@ -1,62 +1,101 @@
-import numpy as np
-import io
+from typing import List
+from ultralytics import YOLO
 from PIL import Image
 import torch
-from transformers import (
-    AutoImageProcessor,
-    AutoModelForObjectDetection,
-    CLIPProcessor,
-    CLIPModel,
-)
-from typing import List
+import io
+import clip
 
 class VLMManager:
     def __init__(self):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"[VLM] Device: {self.device}")
-        self.detr_model = AutoModelForObjectDetection.from_pretrained("facebook/detr-resnet-50", device_map=self.device)
-        self.detr_processor = AutoImageProcessor.from_pretrained("facebook/detr-resnet-50", device_map=self.device)
-        self.clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32", device_map=self.device)
-        self.clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32", device_map=self.device)
 
-    def detect_objects(self, image):
-        with torch.no_grad():
-            inputs = self.detr_processor(images=image, return_tensors="pt").to(self.device)
-            outputs = self.detr_model(**inputs)
-            target_sizes = torch.tensor([image.size[::-1]])
-            results = self.detr_processor.post_process_object_detection(
-                outputs, threshold=0.5, target_sizes=target_sizes
-            )[0]
-        return results["boxes"]
+        self.yolo_model = YOLO("./models/yolov8/weights/best.pt").to(self.device)
+        # self.yolo_model = YOLO("../models/yolov8m-v2-300/weights/best.pt").to(self.device)
 
-    def object_images(self, image, boxes):
-        image_arr = np.array(image)
-        all_images = []
-        for box in boxes:
-            x1, y1, x2, y2 = [int(val) for val in box]
-            _image = image_arr[y1:y2, x1:x2]
-            all_images.append(_image)
-        return all_images
-
-    def identify_target(self, labels, images):
-        inputs = self.clip_processor(
-            text=labels, images=images, return_tensors="pt", padding=True
-        ).to(self.device)
-        with torch.no_grad():
-            outputs = self.clip_model(**inputs)
-        logits_per_image = outputs.logits_per_image
-        most_similar_idx = logits_per_image.argmax(dim=0).item()
-        print(most_similar_idx)
-        return most_similar_idx
+        self.clip_model, self.clip_preprocess = clip.load("ViT-B/32",device=self.device,jit=False)
+        checkpoint = torch.load("./models/clip-finetune/best.pt")
+        # checkpoint = torch.load("../models/clip-finetune/best.pt")
+        self.clip_model.load_state_dict(checkpoint['model_state_dict'])
 
     def identify(self, image: bytes, caption: str) -> List[int]:
-        pil_image = Image.open(io.BytesIO(image)).convert("RGB")
-        detected_objects = self.detect_objects(pil_image)
-        if len(detected_objects) == 0:
-            return [0,0,0,0]
-        images = self.object_images(pil_image, detected_objects)
-        idx = self.identify_target(caption, images)
-        x1, y1, x2, y2 = [int(val) for val in detected_objects[idx].tolist()]
-        width = x2 - x1
-        height = y2 - y1
-        return [x1, y1, width, height]
+        img = Image.open(io.BytesIO(image))
+        
+        # Detect all objects in image
+        yolo_result = self.yolo_model(img, half=True, conf=0.1, verbose=False, classes=[i for i in range(80, 86)])[0]
+        yolo_annotations = []
+        for box, cls in zip(yolo_result.boxes.xywh, yolo_result.boxes.cls):
+            x, y, w, h = box.tolist()
+            # Crop bounding boxes from orginal image
+            l, t, w, h = int(x-(w/2)), int(y-(h/2)), int(w), int(h)
+            cropped = yolo_result.orig_img[t:t+h, l:l+w, ::-1] # BGR to RGB
+            class_id = cls.int().item()
+            yolo_annotations.append({"image": cropped, "bbox": [l, t, w, h], "class": f"{self.yolo_model.names[class_id]}", "class_id": class_id})
+
+        # cap_class = self.extract_object_class(caption, return_name=True)
+        if len(yolo_annotations) == 0:
+            return [0, 0, 0, 0]
+        
+        # Sort annotations by class_id, then by bbox left-top position
+        # yolo_annotations.sort(key=lambda x: (x["class_id"], x["bbox"][0], x["bbox"][1]))
+        
+        # Predict the best match for the caption
+        preprocessed_images = [self.clip_preprocess(Image.fromarray(image["image"])).unsqueeze(0) for image in yolo_annotations]
+        image_tensor = torch.cat(preprocessed_images).to(self.device)
+        text = clip.tokenize(caption).to(self.device)
+
+        with torch.no_grad():
+            logits_per_image, _ = self.clip_model.forward(image=image_tensor, text=text)
+        logits_per_image = logits_per_image.squeeze(1)
+
+        # Apply bias to logits based on class_id
+        cap_class_id = self.extract_object_class(caption)
+        bias_factors = torch.ones_like(logits_per_image)
+        bias_indexes = [idx for idx, anno in enumerate(yolo_annotations) if anno["class_id"] == cap_class_id]
+        if len(bias_indexes) > 0:
+            bias_factors[bias_indexes] = 1.2
+            logits_biased = logits_per_image * bias_factors
+        else:
+            logits_biased = logits_per_image
+
+        best_match_idx = logits_biased.argmax(dim=0).item()
+
+        # Debug prints
+        # print("{:2} {:13} {:6} ({:>5}) = {:6} [ {:>4},{:>4},{:>4},{:>4} ]".format("ID", "Class", "LogitR", "xBias", "LogitN", "L", "T", "W", "H"))
+        # for idx, anno_logits_bias in enumerate(zip(yolo_annotations, logits_per_image.tolist(), bias_factors.tolist())):
+        #     anno, logit, bias = anno_logits_bias
+        #     print("{:2} {:13} {:.3f} (x{:.2f}) = {:.3f} [ {:4},{:4},{:4},{:4} ]"
+        #           .format(anno["class_id"], anno["class"], logit, bias, logit * bias, *anno["bbox"]), end="")
+        #     print(f" <== Predicted (Index: {idx})") if idx == best_match_idx else print()
+        
+        return yolo_annotations[best_match_idx]["bbox"]
+    
+    def extract_object_class(self, caption, return_name=False):
+        # Extract the object's class from the caption
+        if "aircraft" in caption: # light, commercial, cargo
+            class_id = 80
+        elif "drone" in caption:
+            class_id = 81
+        elif "helicopter" in caption:
+            class_id = 82
+        elif "fighter plane" in caption:
+            class_id = 83
+        elif "fighter jet" in caption:
+            class_id = 84
+        elif "missile" in caption:
+            class_id = 85
+        else:
+            print(f"Unknown class for caption: {caption}")
+            return None
+        return self.yolo_model.names[class_id] if return_name else class_id
+
+## Check code
+# import base64
+# vlm_manager = VLMManager()
+# with open("example.jpg", "rb") as file:
+#     image = file.read()
+# image_bytes = base64.b64encode(image).decode("ascii")
+# image_byte = base64.b64decode(image_bytes)
+
+# result = vlm_manager.identify(image_byte, "yellow helicopter")
+# print(result)
