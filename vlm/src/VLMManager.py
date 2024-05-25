@@ -30,7 +30,7 @@ class VLMManager:
             l, t, w, h = int(x-(w/2)), int(y-(h/2)), int(w), int(h)
             cropped = yolo_result.orig_img[t:t+h, l:l+w, ::-1] # BGR to RGB
             class_id = cls.int().item()
-            yolo_annotations.append({"image": cropped, "bbox": [l, t, w, h], "class": f"{self.yolo_model.names[class_id]}", "class_id": class_id})
+            yolo_annotations.append({"image": cropped, "bbox": [l, t, w, h], "class_id": class_id})
 
         # cap_class = self.extract_object_class(caption, return_name=True)
         if len(yolo_annotations) == 0:
@@ -46,7 +46,7 @@ class VLMManager:
 
         with torch.no_grad():
             logits_per_image, _ = self.clip_model.forward(image=image_tensor, text=text)
-        logits_per_image = logits_per_image.squeeze(1)
+        # logits_per_image = logits_per_image.squeeze(1)
 
         # Apply bias to logits based on class_id
         cap_class_id = self.extract_object_class(caption)
@@ -59,18 +59,10 @@ class VLMManager:
             logits_biased = logits_per_image
 
         best_match_idx = logits_biased.argmax(dim=0).item()
-
-        # Debug prints
-        # print("{:2} {:13} {:6} ({:>5}) = {:6} [ {:>4},{:>4},{:>4},{:>4} ]".format("ID", "Class", "LogitR", "xBias", "LogitN", "L", "T", "W", "H"))
-        # for idx, anno_logits_bias in enumerate(zip(yolo_annotations, logits_per_image.tolist(), bias_factors.tolist())):
-        #     anno, logit, bias = anno_logits_bias
-        #     print("{:2} {:13} {:.3f} (x{:.2f}) = {:.3f} [ {:4},{:4},{:4},{:4} ]"
-        #           .format(anno["class_id"], anno["class"], logit, bias, logit * bias, *anno["bbox"]), end="")
-        #     print(f" <== Predicted (Index: {idx})") if idx == best_match_idx else print()
         
         return yolo_annotations[best_match_idx]["bbox"]
     
-    def extract_object_class(self, caption, return_name=False):
+    def extract_object_class(self, caption):
         # Extract the object's class from the caption
         if "aircraft" in caption: # light, commercial, cargo
             class_id = 80
@@ -87,7 +79,7 @@ class VLMManager:
         else:
             print(f"Unknown class for caption: {caption}")
             return None
-        return self.yolo_model.names[class_id] if return_name else class_id
+        return class_id
 
 ## Check code
 # import base64

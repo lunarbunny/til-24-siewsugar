@@ -10,8 +10,8 @@ class VLMManager:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"[VLM] Device: {self.device}")
 
-        self.yolo_model = YOLO("./models/yolov8/weights/best.pt")
-        # self.yolo_model = YOLO("../models/yolov8m-v2-300/weights/best.pt")
+        self.yolo_model = YOLO("./models/yolov8/weights/best.pt").to(self.device)
+        # self.yolo_model = YOLO("../models/yolov8m-v3-300/weights/best.pt")
         
         self.clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(self.device)
         self.clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
@@ -28,7 +28,7 @@ class VLMManager:
             l, t, w, h = int(x-(w/2)), int(y-(h/2)), int(w), int(h)
             cropped = yolo_result.orig_img[t:t+h, l:l+w, ::-1] # BGR to RGB
             class_id = cls.int().item()
-            yolo_annotations.append({"image": cropped, "bbox": [l, t, w, h], "class": f"{self.yolo_model.names[class_id]}", "class_id": class_id})
+            yolo_annotations.append({"image": cropped, "bbox": [l, t, w, h], "class_id": class_id})
 
         # cap_class = self.extract_object_class(caption, return_name=True)
         if len(yolo_annotations) == 0:
@@ -41,7 +41,7 @@ class VLMManager:
         inputs = self.clip_processor(text=caption, images=[a["image"] for a in yolo_annotations], return_tensors="pt", padding=True).to(self.device)
         with torch.no_grad():
             outputs = self.clip_model(**inputs)
-        logits_per_image = outputs.logits_per_image.squeeze(1) # image-text similarity score
+        logits_per_image = outputs.logits_per_image # image-text similarity score
 
         # Apply bias to logits based on class_id
         cap_class_id = self.extract_object_class(caption)
@@ -54,14 +54,6 @@ class VLMManager:
             logits_biased = logits_per_image
 
         best_match_idx = logits_biased.argmax(dim=0).item()
-
-        # Debug prints
-        # print("{:2} {:13} {:6} ({:>5}) = {:6} [ {:>4},{:>4},{:>4},{:>4} ]".format("ID", "Class", "LogitR", "xBias", "LogitN", "L", "T", "W", "H"))
-        # for idx, anno_logits_bias in enumerate(zip(yolo_annotations, logits_per_image.tolist(), bias_factors.tolist())):
-        #     anno, logit, bias = anno_logits_bias
-        #     print("{:2} {:13} {:.3f} (x{:.2f}) = {:.3f} [ {:4},{:4},{:4},{:4} ]"
-        #           .format(anno["class_id"], anno["class"], logit, bias, logit * bias, *anno["bbox"]), end="")
-        #     print(f" <== Predicted (Index: {idx})") if idx == best_match_idx else print()
         
         return yolo_annotations[best_match_idx]["bbox"]
     
