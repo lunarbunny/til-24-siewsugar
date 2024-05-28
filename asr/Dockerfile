@@ -20,11 +20,13 @@ WORKDIR /workspace
 
 # install other requirements
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # copy the rest of the files into the container
 COPY src .
-COPY ./models/whisper-small.en-til-24/*.json ./models/whisper-small.en-til-24/*.bin ./models/whisper-small.en-til-24/
+ARG MODEL_ROOT="./models/whisper-small.en-til-24"
+COPY ${MODEL_ROOT}/processor  ${MODEL_ROOT}/
+COPY ${MODEL_ROOT}/config.json ${MODEL_ROOT}/generation_config.json ${MODEL_ROOT}/pytorch_model.bin ${MODEL_ROOT}/
 
 # start model service
 CMD uvicorn api_service:app --port 5001 --host 0.0.0.0

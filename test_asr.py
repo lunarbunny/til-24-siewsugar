@@ -1,5 +1,6 @@
 import base64
 import json
+import time
 from typing import Dict, List
 import pandas as pd
 import requests
@@ -51,6 +52,21 @@ def main():
                 instances.append(
                     {**instance, "b64": base64.b64encode(audio_bytes).decode("ascii")}
                 )
+
+    # Wait for the server to start
+    counter = 0
+    retries = 100
+    while counter < retries:
+        counter += 1
+        print(f"> Checking server health... ({counter}/{retries} attempts)", end="\r")
+        try:
+            res = requests.get("http://localhost:5001/health")
+            if res.ok:
+                print("\n✓ Server is ready!")
+                break
+        except requests.exceptions.ConnectionError:
+            pass
+        time.sleep(2)
 
     results = run_batched(instances)
     df = pd.DataFrame(results)

@@ -21,7 +21,7 @@ def load_audio(file_bytes: bytes, sr: int = 16_000) -> np.ndarray:
         # Requires the ffmpeg CLI and `ffmpeg-python` package to be installed.
         out, _ = (
             ffmpeg.input('pipe:', threads=0)
-            .output("pipe:", format="s16le", acodec="pcm_s16le", ac=1, ar=sr)
+            .output("pipe:", format="s16le", acodec="pcm_s16le", ac=1, ar=sr, loglevel="quiet")
             .run_async(pipe_stdin=True, pipe_stdout=True)
         ).communicate(input=file_bytes)
 
@@ -30,21 +30,20 @@ def load_audio(file_bytes: bytes, sr: int = 16_000) -> np.ndarray:
 
     return np.frombuffer(out, np.int16).flatten().astype(np.float32) / 32768.0
 
-MODEL_NAME = "openai/whisper-small.en"
-MODEL_CHKPT_NAME = "./models/whisper-small.en-til-24/"
+MODEL_CHECKPOINT = "./models/whisper-small.en-til-24/"
 
 class ASRManager:
     def __init__(self):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"[ASR] Device: {self.device}")
 
-        self.processor = WhisperProcessor.from_pretrained(MODEL_NAME)
-        self.model = WhisperForConditionalGeneration.from_pretrained(MODEL_CHKPT_NAME).to(self.device)
+        self.processor = WhisperProcessor.from_pretrained(MODEL_CHECKPOINT)
+        self.model = WhisperForConditionalGeneration.from_pretrained(MODEL_CHECKPOINT).to(self.device)
         
         # Suppress tokens for numeric values, to get the equivalent word spelled out (e.g. "123" -> "one two three")
         tokenizer=self.processor.tokenizer
         number_tokens = [i for i in range(tokenizer.vocab_size) if all(c in "0123456789" for c in tokenizer.decode([i]).removeprefix(" "))]
-        self.gen_config = GenerationConfig.from_pretrained(MODEL_CHKPT_NAME)
+        self.gen_config = GenerationConfig.from_pretrained(MODEL_CHECKPOINT)
         self.gen_config.suppress_tokens += number_tokens
 
     def transcribe(self, audio_bytes: bytes) -> str:
