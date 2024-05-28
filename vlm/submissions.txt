@@ -1,0 +1,42 @@
+==============================
+YOLOv8m + clip-vit-base-patch32 (first 100 images; test_vlm.py 100)
+MODEL       BIAS LOCAL_SCORE SUBMISSION_SCORE
+v1-300-best x1.2 0.800366    
+v1-300-best x1.5 0.809523    
+
+v2-300-c250 x1.2 0.815018    0.724, 0.830
+v2-300-c275 x1.2 0.820512    0.725, 0.808
+v2-300-last x1.2 0.813186    0.734, 0.831
+v2-300-best x1.2 0.813186    (last=best)
+v2-300-c250 x1.5 0.822344    0.706, 0.828
+v2-300-c275 x1.5 0.826007    0.710, 0.830
+v2-300-last x1.5 0.816849    0.715, 0.834
+v2-300-best x1.5 0.816849    (last=best)
+
+v3-300-c250 x1.2 0.809523    0.700, 0.824
+v3-300-c275 x1.2 0.811355    0.708, 0.822
+v3-300-last x1.2 0.826007    0.712, 0.826
+v3-300-best x1.2 0.826007    (last=best)
+v3-300-c250 x1.5 0.816849    0.685, 0.832
+v3-300-c275 x1.5 0.818681    0.697, 0.829
+v3-300-last x1.5 0.831501    0.691, 0.832
+v3-300-best x1.5 0.831501    (last=best)
+
+==============================
+YOLOv8 Accuracy (% of bbox with IoU>0.5 and correct class; test_yolo.py)
+MODEL                              ACCURACY
+yolov8m-v1-300/weights/best.pt     0.9911927606366612
+
+yolov8m-v2-300/weights/epoch175.pt 0.9914137458390444
+yolov8m-v2-300/weights/epoch200.pt 0.9915172452376291
+yolov8m-v2-300/weights/epoch225.pt 0.9917997706229544
+yolov8m-v2-300/weights/epoch250.pt 0.9919571176816134
+yolov8m-v2-300/weights/epoch275.pt 0.9919568845748599
+yolov8m-v2-300/weights/best.pt     0.9917993044094473
+
+yolov8m-v3-300/weights/epoch175.pt 0.9920209889320913
+yolov8m-v3-300/weights/epoch200.pt 0.9921666806530719
+yolov8m-v3-300/weights/epoch225.pt 0.9924846382649398
+yolov8m-v3-300/weights/epoch250.pt 0.9925841748487138
+yolov8m-v3-300/weights/epoch275.pt 0.9925154083564109
+yolov8m-v3-300/weights/best.pt     0.9925300940818857
