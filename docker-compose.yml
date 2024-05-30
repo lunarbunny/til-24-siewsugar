@@ -71,7 +71,7 @@ services:
       interval: 5s
       timeout: 30s
       retries: 5
-      start_period: 3s
+      start_period: 30s
   til-nlp:
     build: nlp/
     image: til_nlp:v0.0.1
@@ -129,8 +129,10 @@ services:
       retries: 5
       start_period: 3s
   til-vlm:
-    build: vlm/
-    image: til_vl:v0.0.1
+    build:
+      context: vlm/
+      dockerfile: DockerfileYolo
+    image: til_vlm:v0.0.1
     container_name: til-vlm
     environment:
       NVIDIA_VISIBLE_DEVICES: 0
@@ -147,7 +149,7 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
-    command: ["uvicorn", "api_service:app", "--host", "0.0.0.0", "--port", "5004"]
+    command: ["uvicorn", "api_service_yolo:app", "--host", "0.0.0.0", "--port", "5004"]
     healthcheck:
       test: curl -f http://localhost:5004/health || exit 1
       interval: 5s
