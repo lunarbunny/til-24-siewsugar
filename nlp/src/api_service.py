@@ -6,14 +6,6 @@ app = FastAPI()
 
 nlp_manager = NLPManager()
 
-@app.middleware('http')
-async def log_request_duration(request, call_next):
-    start_time = time.time()
-    response = await call_next(request)
-    process_time = (time.time() - start_time) * 1000
-    print(f"request took: {process_time} ms")
-    return response
-
 @app.get("/health")
 def health():
     return {"message": "health ok"}

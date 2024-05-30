@@ -18,7 +18,7 @@ WORKDIR /workspace
 
 # install other requirements
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # copy the rest of the files into the container
 COPY src .
