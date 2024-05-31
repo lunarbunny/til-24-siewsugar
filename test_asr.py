@@ -26,16 +26,10 @@ def main():
             line_limit = int(arg1)
             print(f"Limiting to {line_limit} test cases.")
 
-    on_gcp = None not in [TEAM_NAME, TEAM_TRACK]
+    on_gcp = os.getenv("LOCAL") is None
 
-    if on_gcp:
-        # For running on GCP
-        input_dir = Path(f"/home/jupyter/{TEAM_TRACK}")
-        results_dir = Path(f"/home/jupyter/{TEAM_NAME}")
-    else:
-        # For running locally
-        input_dir = Path("advanced")
-        results_dir = Path("results")
+    input_dir = Path(f"{'/home/jupyter/' if on_gcp else ''}advanced")
+    results_dir = Path(f"{'/home/jupyter/' if on_gcp else ''}results")
     
     results_dir.mkdir(parents=True, exist_ok=True)
     instances = []
